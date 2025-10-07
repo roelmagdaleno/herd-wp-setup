@@ -12,6 +12,10 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Get script directory for accessing stubs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+STUBS_DIR="${SCRIPT_DIR}/stubs"
+
 # Configuration
 # Base path where WordPress sites will be created. The base path must be registered in Herd.
 # Change this to your desired base path.
@@ -79,6 +83,12 @@ if ! command -v herd &> /dev/null; then
     exit 1
 fi
 
+# Check if herd-mailer.php stub exists
+if [ ! -f "${STUBS_DIR}/herd-mailer.php" ]; then
+    echo -e "${YELLOW}Warning: herd-mailer.php not found in stubs directory.${NC}"
+    echo "Expected location: ${STUBS_DIR}/herd-mailer.php"
+fi
+
 # Prompt for site name
 if [ -z "$SITE_NAME" ]; then
     read -p "Enter site name (e.g., WPB Plugins): " SITE_NAME
@@ -111,7 +121,7 @@ if [ "$CONFIRM" != "y" ]; then
 fi
 
 # Step 1: Create folder
-echo -e "\n${GREEN}[1/6] Creating project folder...${NC}"
+echo -e "\n${GREEN}[1/7] Creating project folder...${NC}"
 if [ -d "$FULL_PATH" ]; then
     echo -e "${RED}Error: Folder already exists: $FULL_PATH${NC}"
     exit 1
@@ -121,21 +131,23 @@ mkdir -p "$FULL_PATH"
 echo "✓ Folder created"
 
 # Step 2: Download WordPress
-echo -e "\n${GREEN}[2/6] Downloading WordPress...${NC}"
+echo -e "\n${GREEN}[2/7] Downloading WordPress...${NC}"
 cd "$FULL_PATH"
 wp core download
+echo "✓ WordPress downloaded"
 
 # Step 3: Herd secure
-echo -e "\n${GREEN}[3/6] Configuring Laravel Herd...${NC}"
+echo -e "\n${GREEN}[3/7] Configuring Laravel Herd...${NC}"
 herd secure
+echo "✓ Herd configured"
 
 # Step 4: Create database
-echo -e "\n${GREEN}[4/6] Creating database...${NC}"
+echo -e "\n${GREEN}[4/7] Creating database...${NC}"
 mysql -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -e "CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 echo "✓ Database '$DB_NAME' created"
 
 # Step 5: Create wp-config.php
-echo -e "\n${GREEN}[5/6] Configuring WordPress...${NC}"
+echo -e "\n${GREEN}[5/7] Configuring WordPress...${NC}"
 wp config create \
     --dbname="$DB_NAME" \
     --dbuser="$DB_USER" \
@@ -146,7 +158,7 @@ wp config create \
 echo "✓ wp-config.php created"
 
 # Step 6: Install WordPress
-echo -e "\n${GREEN}[6/6] Installing WordPress...${NC}"
+echo -e "\n${GREEN}[6/7] Installing WordPress...${NC}"
 
 # Prompt for installation details if not provided
 if [ -z "$ADMIN_USER" ]; then
@@ -184,6 +196,24 @@ wp core install \
     --skip-email
 
 echo "✓ WordPress installed"
+
+# Step 7: Install Herd Mailer mu-plugin
+echo -e "\n${GREEN}[7/7] Installing Herd Mailer mu-plugin...${NC}"
+MU_PLUGINS_DIR="${FULL_PATH}/wp-content/mu-plugins"
+
+if [ -f "${STUBS_DIR}/herd-mailer.php" ]; then
+    # Create mu-plugins directory if it doesn't exist
+    if [ ! -d "$MU_PLUGINS_DIR" ]; then
+        mkdir -p "$MU_PLUGINS_DIR"
+        echo "✓ Created mu-plugins directory"
+    fi
+
+    # Copy herd-mailer.php to mu-plugins
+    cp "${STUBS_DIR}/herd-mailer.php" "$MU_PLUGINS_DIR/"
+    echo "✓ Herd Mailer installed"
+else
+    echo -e "${YELLOW}⚠ Skipped: herd-mailer.php not found${NC}"
+fi
 
 # Summary
 echo -e "\n${GREEN}=== Installation Complete ===${NC}"
