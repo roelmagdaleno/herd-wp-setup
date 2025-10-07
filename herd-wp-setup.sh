@@ -19,11 +19,12 @@ STUBS_DIR="${SCRIPT_DIR}/stubs"
 # Configuration
 # Base path where WordPress sites will be created. The base path must be registered in Herd.
 # Change this to your desired base path.
-BASE_PATH="/Users/roelmagdaleno/Code/WordPress"
+# Can be overridden via environment variable `HERD_WP_BASE_PATH`.
+BASE_PATH=""
 
 # Database configuration
 # Adjust these as necessary. Ensure the MySQL user has permissions to create databases.
-# For now, I've created the database instance with DBngin, so all databases will be created under the same user.
+# Can be overridden via environment variables.
 DB_USER="root"
 DB_PASSWORD=""
 DB_HOST="127.0.0.1"
@@ -34,6 +35,7 @@ SITE_NAME=""
 ADMIN_USER=""
 ADMIN_EMAIL=""
 ADMIN_PASSWORD=""
+ENV_FILE=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -53,13 +55,44 @@ while [[ $# -gt 0 ]]; do
             ADMIN_PASSWORD="$2"
             shift 2
             ;;
+        --env-file)
+            ENV_FILE="$2"
+            shift 2
+            ;;
         *)
             echo -e "${RED}Unknown option: $1${NC}"
-            echo "Usage: $0 [--name SITE_NAME] [--username USERNAME] [--email EMAIL] [--password PASSWORD]"
+            echo "Usage: $0 [--name SITE_NAME] [--username USERNAME] [--email EMAIL] [--password PASSWORD] [--env-file PATH]"
             exit 1
             ;;
     esac
 done
+
+# Load environment variables from file
+# Priority: 1. Specified --env-file, 2. ~/.herd-wp-setup.env, 3. Default values
+if [ -n "$ENV_FILE" ]; then
+    # Use specified env file
+    if [ -f "$ENV_FILE" ]; then
+        source "$ENV_FILE"
+    else
+        echo -e "${RED}Error: Specified env file not found: $ENV_FILE${NC}"
+        exit 1
+    fi
+elif [ -f "$HOME/.herd-wp-setup.env" ]; then
+    # Use default env file in home directory
+    source "$HOME/.herd-wp-setup.env"
+fi
+
+# Apply environment variables (only if not already set by CLI args or defaults)
+BASE_PATH="${HERD_WP_BASE_PATH:-$BASE_PATH}"
+DB_USER="${HERD_WP_DB_USER:-$DB_USER}"
+DB_PASSWORD="${HERD_WP_DB_PASSWORD:-$DB_PASSWORD}"
+DB_HOST="${HERD_WP_DB_HOST:-$DB_HOST}"
+DB_PORT="${HERD_WP_DB_PORT:-$DB_PORT}"
+
+# Set default admin values from env if not provided via CLI
+ADMIN_USER="${ADMIN_USER:-$HERD_WP_DEFAULT_ADMIN_USER}"
+ADMIN_EMAIL="${ADMIN_EMAIL:-$HERD_WP_DEFAULT_ADMIN_EMAIL}"
+ADMIN_PASSWORD="${ADMIN_PASSWORD:-$HERD_WP_DEFAULT_ADMIN_PASSWORD}"
 
 echo -e "${GREEN}=== WordPress Site Setup ===${NC}\n"
 
