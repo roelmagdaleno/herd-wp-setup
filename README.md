@@ -10,6 +10,7 @@ A tiny Bash utility to automate the local setup of a new WordPress site using WP
 - Creates a MySQL database
 - Generates `wp-config.php`
 - Runs the WordPress installer with your chosen admin credentials
+- Loads configuration variables from a .env file (or via `--env-file`) with sensible defaults
 
 ## Requirements
 
@@ -57,6 +58,42 @@ Configure your local MySQL connection details:
 - `DB_HOST` (default: `127.0.0.1`)
 - `DB_PORT` (default: `3307`)
 
+### Environment variables (.env support)
+
+You can configure the script using environment variables loaded from a .env-style file.
+
+Ways to provide configuration (highest priority first):
+
+1. CLI flags (e.g., `--name`, `--username`, etc.)
+2. Variables loaded from an env file
+   - Pass a file via `--env-file /path/to/.herd-wp-setup.env`
+   - Or place a default file at `~/.herd-wp-setup.env`
+3. Built-in defaults (shown above)
+
+Supported variables for the env file:
+
+- `HERD_WP_BASE_PATH` — Base folder for new sites (must be registered in Herd)
+- `HERD_WP_DB_USER` - MySQL username
+- `HERD_WP_DB_PASSWORD` - MySQL password
+- `HERD_WP_DB_HOST` - MySQL host
+- `HERD_WP_DB_PORT` - MySQL port
+- `HERD_WP_DEFAULT_ADMIN_USER` — Default WordPress admin username
+- `HERD_WP_DEFAULT_ADMIN_EMAIL` — Default WordPress admin email
+- `HERD_WP_DEFAULT_ADMIN_PASSWORD` — Default WordPress admin password
+
+Example `~/.herd-wp-setup.env`:
+
+```
+HERD_WP_BASE_PATH=/Users/you/Code/WordPress
+HERD_WP_DB_USER=root
+HERD_WP_DB_PASSWORD=
+HERD_WP_DB_HOST=127.0.0.1
+HERD_WP_DB_PORT=3307
+HERD_WP_DEFAULT_ADMIN_USER=admin
+HERD_WP_DEFAULT_ADMIN_EMAIL=admin@local.test
+HERD_WP_DEFAULT_ADMIN_PASSWORD=secret
+```
+
 ## Mail
 
 The script includes the `stubs/herd-mailer.php` must-use plugin that connects to Herd's Pro SMTP server for local email logging.
@@ -80,6 +117,7 @@ Supported options:
 - `--username`   WordPress admin username (default prompted; falls back to `admin`)
 - `--email`      WordPress admin email (default prompted; falls back to `admin@<domain>.test`)
 - `--password`   WordPress admin password (if omitted, you’ll be prompted and can auto-generate)
+- `--env-file`   Path to a .env file to load configuration variables (overrides defaults)
 
 Examples:
 
@@ -89,6 +127,9 @@ Examples:
 
 # Provide only the site name (other values prompted)
 ./herd-wp-setup.sh --name "My WP Site"
+
+# Use an env file for configuration (overrides defaults)
+./herd-wp-setup.sh --env-file ~/.herd-wp-setup.env --name "Env Driven Site"
 
 # Non-interactive install with explicit admin credentials
 ./herd-wp-setup.sh \
